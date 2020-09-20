@@ -48,7 +48,7 @@ func (v *Table) Visit(f uefi.Firmware) error {
 		return v.printFirmware(f, "File", f.Header.GUID.String(), f.Header.Type, v.curOffset, v.curOffset+f.DataOffset)
 	case *uefi.Section:
 		// Reset offset to O for (compressed) section content
-		return v.printFirmware(f, "Sec", f.String(), f.Type, v.curOffset, 0)
+		return v.printFirmware(f, "Section", f.String(), f.Type, v.curOffset, 0)
 	case *uefi.FlashDescriptor:
 		return v.printFirmware(f, "IFD", "", "", 0, 0)
 	case *uefi.BIOSRegion:
