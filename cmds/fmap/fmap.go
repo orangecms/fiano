@@ -44,6 +44,8 @@ import (
 	"github.com/linuxboot/fiano/pkg/fmap"
 )
 
+// TODO: add syscall/js callbacks
+
 var cmds = map[string]struct {
 	nArgs               int
 	openFile, parseFMap bool
@@ -268,6 +270,7 @@ loop:
 			if err == io.EOF {
 				break loop
 			} else if err == io.ErrUnexpectedEOF {
+				// FIXME: write this to stderr, otherwise JSON is borked
 				fmt.Printf("\nWarning: flash is not a multiple of %d", len(buffer))
 				break loop
 			} else if err != nil {
