@@ -8,21 +8,21 @@ import (
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
-	"html"
-	"regexp"
 	"fmt"
+	"html"
 	"log"
-	"syscall/js"
-	"strings"
+	"regexp"
 	"sort"
+	"strings"
+	"syscall/js"
 
+	"github.com/dennwc/dom"
 	"github.com/linuxboot/fiano/pkg/uefi"
 	"github.com/linuxboot/fiano/pkg/visitors"
-	"github.com/dennwc/dom"
 )
 
 type VisitorInfo struct {
-	name string
+	name    string
 	visitor visitors.VisitorEntry
 }
 
@@ -41,28 +41,28 @@ func (t *FirmwareTree) NumCols() int {
 func (t *FirmwareTree) Text(row int, col int) string {
 	f := t.nodes[row].Value
 	switch col {
-		case 0:
-			return t.nodes[row].Type
-		case 1:
-			switch f := f.(type) {
-			case *uefi.FirmwareVolume:
-				return f.String()
-			case *uefi.File:
-				return f.Header.GUID.String()
-			case *uefi.Section:
-				return f.String()
-			case *uefi.NVar:
-				return f.GUID.String()
-			case *uefi.RawRegion:
-				return f.Type().String()
-			}
-		case 2:
-			switch f := f.(type) {
-			case *uefi.File:
-				return f.Header.Type.String()
-			case *uefi.Section:
-				return f.Type
-			}
+	case 0:
+		return t.nodes[row].Type
+	case 1:
+		switch f := f.(type) {
+		case *uefi.FirmwareVolume:
+			return f.String()
+		case *uefi.File:
+			return f.Header.GUID.String()
+		case *uefi.Section:
+			return f.String()
+		case *uefi.NVar:
+			return f.GUID.String()
+		case *uefi.RawRegion:
+			return f.Type().String()
+		}
+	case 2:
+		switch f := f.(type) {
+		case *uefi.File:
+			return f.Header.Type.String()
+		case *uefi.Section:
+			return f.Type
+		}
 	}
 	return ""
 }
@@ -93,7 +93,7 @@ func load(image []byte) {
 	sortedRegistry := []VisitorInfo{}
 	for name, v := range visitors.VisitorRegistry {
 		sortedRegistry = append(sortedRegistry, VisitorInfo{
-			name: name,
+			name:    name,
 			visitor: v,
 		})
 	}
@@ -133,7 +133,7 @@ func load(image []byte) {
 		for _, vi := range sortedRegistry {
 			v := vi.visitor
 			name := vi.name // for closure capture
-			text := newWord.ReplaceAllStringFunc(name, func(src string) string  {
+			text := newWord.ReplaceAllStringFunc(name, func(src string) string {
 				if src == "_" {
 					return " "
 				}
@@ -143,7 +143,7 @@ func load(image []byte) {
 
 			button := dom.NewButton(html.EscapeString(text))
 			button.SetAttribute("title", v.Help)
-			button.OnClick(func (_ dom.Event) {
+			button.OnClick(func(_ dom.Event) {
 				defer updateList()
 
 				entry, ok := visitors.VisitorRegistry[name]
@@ -154,19 +154,19 @@ func load(image []byte) {
 				args := []string{} // TODO: Support multiple args
 
 				switch name {
-					case "remove_pad", "remove":
-						if len(tree.highlighted) == 0 {
-							log.Printf("Selected something to remove")
-							return
+				case "remove_pad", "remove":
+					if len(tree.highlighted) == 0 {
+						log.Printf("Selected something to remove")
+						return
+					}
+					guids := []string{}
+					for s := range tree.highlighted {
+						f := flattenTree[s]
+						if f, ok := f.Value.(*uefi.File); ok {
+							guids = append(guids, f.Header.GUID.String())
 						}
-						guids := []string{}
-						for s := range tree.highlighted {
-							f := flattenTree[s]
-							if f, ok := f.Value.(*uefi.File); ok {
-								guids = append(guids, f.Header.GUID.String())
-							}
-						}
-						args = []string{strings.Join(guids, "|")}
+					}
+					args = []string{strings.Join(guids, "|")}
 				}
 
 				if entry.NumArgs != len(args) {
@@ -216,10 +216,10 @@ func main() {
 		// Read the contents of the file asynchronously.
 		reader := js.Global().Get("FileReader").New()
 		var onload, onerror js.Func
-		onload = js.FuncOf(func(_ js.Value, _ []js.Value) interface {} {
+		onload = js.FuncOf(func(_ js.Value, _ []js.Value) interface{} {
 			onload.Release()
 			onerror.Release()
-			var arrayBuffer = reader.Get("result")
+			var arrayBuffer = reader.Get("result") // secret sauce
 			var uint8Array = js.Global().Get("Uint8Array").New(arrayBuffer)
 			data := make([]byte, uint8Array.Get("length").Int())
 			n := js.CopyBytesToGo(data, uint8Array)
@@ -227,7 +227,7 @@ func main() {
 			load(data)
 			return nil
 		})
-		onerror = js.FuncOf(func(this js.Value, args []js.Value) interface {} {
+		onerror = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			onload.Release()
 			onerror.Release()
 			log.Print("Error: failed to read file")
