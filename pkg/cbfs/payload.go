@@ -39,7 +39,8 @@ func (p *PayloadRecord) Read(in io.ReadSeeker) error {
 		return fmt.Errorf("Finding location in stream: %v", err)
 	}
 	amt := uint32(where) - p.Size
-	if amt == 0 {
+	Debug("Payload size %v and memory to allocate: %v %v", p.Size, where, amt)
+	if amt == 0 || amt > 32*1024*1024 {
 		return nil
 	}
 	p.FData = make([]byte, amt)
