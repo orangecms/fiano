@@ -65,6 +65,8 @@ func AddBiosL2Entry(d *BIOSDir, image []byte) {
 		if entry.Type != BIOSDirectoryTableLevel2Entry {
 			continue
 		}
+		// TODO: This is hardcoded, and likely the wrong place to do it.
+		// It stems from the memory mapping in running systems.
 		if entry.SourceAddress > 0xff000000 {
 			entry.SourceAddress -= 0xff000000
 		}
@@ -93,6 +95,8 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 	result.EmbeddedFirmware = *efs
 	result.EmbeddedFirmwareRange = r
 
+	// TODO: Add second PSP directory for other chip families/models
+	// See https://doc.coreboot.org/soc/amd/psp_integration.html#embedded-firmware-structure
 	var pspDirectoryLevel1 *PSPDirectoryTable
 	var pspDirectoryLevel1Range bytes2.Range
 	if efs.PSPDirectoryTablePointer != 0 && efs.PSPDirectoryTablePointer < uint32(len(image)) {
@@ -117,6 +121,8 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 			if entry.Type != PSPDirectoryTableLevel2Entry {
 				continue
 			}
+			// TODO: This is hardcoded, and likely the wrong place to do it.
+			// It stems from the memory mapping in running systems.
 			if entry.LocationOrValue > 0xff000000 {
 				entry.LocationOrValue -= 0xff000000
 			}
@@ -133,7 +139,6 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 	}
 
 	result.BIOSDirectories = []BIOSDir{}
-	result.BIOSDirectories = append(result.BIOSDirectories, BIOSDir{})
 
 	var biosDirectoryLevel1 *BIOSDirectoryTable
 	var biosDirectoryLevel1Range bytes2.Range
@@ -144,30 +149,48 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 		efs.BIOSDirectoryTableFamily17hModels30h3FhPointer,
 		efs.BIOSDirectoryTableFamily17hModels60h3FhPointer,
 	}
+
 	for _, offset := range biosDirectoryOffsets {
-		if offset == 0 || int(offset) > len(image) {
+		if offset == 0 || offset == 0xffffffff {
+			continue
+		}
+		// TODO: This is hardcoded, and likely the wrong place to do it.
+		// It stems from the memory mapping in running systems.
+		if int(offset) > len(image) {
+			offset -= 0xff000000
+		}
+		if int(offset) > len(image) {
 			continue
 		}
 		var length uint64
 		biosDirectoryLevel1, length, err = ParseBIOSDirectoryTable(image[offset:])
+
 		if err != nil {
 			continue
 		}
 		biosDirectoryLevel1Range.Offset = uint64(offset)
 		biosDirectoryLevel1Range.Length = length
-		break
+
+		if biosDirectoryLevel1 != nil {
+			// fmt.Printf("BIOS DIR FOUND %v (%v)\n", biosDirectoryLevel1.BIOSCookie, length)
+			result.BIOSDirectories = append(result.BIOSDirectories, BIOSDir{})
+			bd := &result.BIOSDirectories[len(result.BIOSDirectories)-1]
+			bd.BIOSDirectoryLevel1 = biosDirectoryLevel1
+			bd.BIOSDirectoryLevel1Range = biosDirectoryLevel1Range
+			AddBiosL2Entry(bd, image)
+		}
 	}
 
-	if biosDirectoryLevel1 == nil {
-		biosDirectoryLevel1, biosDirectoryLevel1Range, _ = FindBIOSDirectoryTable(image)
-	}
-
-	if biosDirectoryLevel1 != nil {
-		result.BIOSDirectories[0].BIOSDirectoryLevel1 = biosDirectoryLevel1
-		result.BIOSDirectories[0].BIOSDirectoryLevel1Range = biosDirectoryLevel1Range
-
-		AddBiosL2Entry(&result.BIOSDirectories[0], image)
-	}
+	// TODO: Manually scan in addition and compare offsets to existing findings
+	// NOTE: Some images do not have level 2 directory references in directory 1.
+	/*
+		biosDirectoryLevel1, biosDirectoryLevel1Range, err = FindBIOSDirectoryTable(image[curOffset:])
+		if err != nil {
+			fmt.Printf("BIOS DIR SCAN: %v\n", err)
+		} else {
+			fmt.Printf("BIOS DIR SCAN: %v\n", biosDirectoryLevel1Range)
+		}
+	*/
 
 	return &result, nil
 }
