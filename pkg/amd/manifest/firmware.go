@@ -60,6 +60,26 @@ func (a *AMDFirmware) PSPFirmware() *PSPFirmware {
 	return a.pspFirmware
 }
 
+func AddBiosL2Entry(d *BIOSDir, image []byte) {
+	for _, entry := range d.BIOSDirectoryLevel1.Entries {
+		if entry.Type != BIOSDirectoryTableLevel2Entry {
+			continue
+		}
+		if entry.SourceAddress > 0xff000000 {
+			entry.SourceAddress -= 0xff000000
+		}
+		if entry.SourceAddress != 0 && entry.SourceAddress < uint64(len(image)) {
+			biosDirectoryLevel2, length, err := ParseBIOSDirectoryTable(image[entry.SourceAddress:])
+			if err == nil {
+				d.BIOSDirectoryLevel2 = biosDirectoryLevel2
+				d.BIOSDirectoryLevel2Range.Offset = entry.SourceAddress
+				d.BIOSDirectoryLevel2Range.Length = length
+			}
+		}
+		break
+	}
+}
+
 // parsePSPFirmware parses input firmware as PSP firmware image and
 // collects Embedded firmware, PSP directory and BIOS directory structures
 func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
@@ -146,23 +166,7 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 		result.BIOSDirectories[0].BIOSDirectoryLevel1 = biosDirectoryLevel1
 		result.BIOSDirectories[0].BIOSDirectoryLevel1Range = biosDirectoryLevel1Range
 
-		for _, entry := range biosDirectoryLevel1.Entries {
-			if entry.Type != BIOSDirectoryTableLevel2Entry {
-				continue
-			}
-			if entry.SourceAddress > 0xff000000 {
-				entry.SourceAddress -= 0xff000000
-			}
-			if entry.SourceAddress != 0 && entry.SourceAddress < uint64(len(image)) {
-				biosDirectoryLevel2, length, err := ParseBIOSDirectoryTable(image[entry.SourceAddress:])
-				if err == nil {
-					result.BIOSDirectories[0].BIOSDirectoryLevel2 = biosDirectoryLevel2
-					result.BIOSDirectories[0].BIOSDirectoryLevel2Range.Offset = entry.SourceAddress
-					result.BIOSDirectories[0].BIOSDirectoryLevel2Range.Length = length
-				}
-			}
-			break
-		}
+		AddBiosL2Entry(&result.BIOSDirectories[0], image)
 	}
 
 	return &result, nil
