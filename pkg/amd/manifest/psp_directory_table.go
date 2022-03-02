@@ -42,6 +42,7 @@ type PSPDirectoryTableEntry struct {
 	ROMId           uint8
 	Size            uint32
 	LocationOrValue uint64
+	Header          PSPHeader
 }
 
 const PSPDirectoryTableEntrySize = 16
@@ -110,6 +111,14 @@ func FindPSPDirectoryTable(image []byte) (*PSPDirectoryTable, bytes2.Range, erro
 			offset += shift
 			continue
 		}
+		// TODO: iterate over entries and extend with header information
+		/*
+		   header, err := ParsePSPHeader(image[entry.LocationOrValue:0x70])
+		   if err != nil {
+		     return nil, 0, err
+		   }
+		   entry.Header = *header
+		*/
 		return table, bytes2.Range{Offset: offset + uint64(idx), Length: length}, err
 	}
 	return nil, bytes2.Range{}, fmt.Errorf("PSPDirectoryTable is not found")
@@ -177,5 +186,6 @@ func ParsePSPDirectoryTableEntry(r io.Reader) (*PSPDirectoryTableEntry, uint64, 
 	if err := readAndCountSize(r, binary.LittleEndian, &entry.LocationOrValue, &length); err != nil {
 		return nil, 0, err
 	}
+
 	return &entry, length, nil
 }
