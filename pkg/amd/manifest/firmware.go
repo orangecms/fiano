@@ -97,6 +97,9 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 			if entry.Type != PSPDirectoryTableLevel2Entry {
 				continue
 			}
+			if entry.LocationOrValue > 0xff000000 {
+				entry.LocationOrValue -= 0xff000000
+			}
 			if entry.LocationOrValue != 0 && entry.LocationOrValue < uint64(len(image)) {
 				pspDirectoryLevel2, length, err := ParsePSPDirectoryTable(image[entry.LocationOrValue:])
 				if err == nil {
@@ -146,6 +149,9 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 		for _, entry := range biosDirectoryLevel1.Entries {
 			if entry.Type != BIOSDirectoryTableLevel2Entry {
 				continue
+			}
+			if entry.SourceAddress > 0xff000000 {
+				entry.SourceAddress -= 0xff000000
 			}
 			if entry.SourceAddress != 0 && entry.SourceAddress < uint64(len(image)) {
 				biosDirectoryLevel2, length, err := ParseBIOSDirectoryTable(image[entry.SourceAddress:])
