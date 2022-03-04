@@ -31,7 +31,9 @@ const (
 	// PSPBootloaderFirmwareEntry denotes a PSP bootloader firmware entry in PSP Directory table
 	PSPBootloaderFirmwareEntry PSPDirectoryTableEntryType = 0x01
 	// PSPDirectoryTableLevel2Entry denotes an entry that points to PSP Directory table level 2
-	PSPDirectoryTableLevel2Entry PSPDirectoryTableEntryType = 0x40
+	PSPDirectoryTableLevel2Entry       PSPDirectoryTableEntryType = 0x40
+	PSPDirectoryTableLevel2RecovAEntry PSPDirectoryTableEntryType = 0x48
+	PSPDirectoryTableLevel2RecovBEntry PSPDirectoryTableEntryType = 0x4A
 )
 
 // PSPDirectoryTableEntry represents a single entry in PSP Directory Table
@@ -62,6 +64,16 @@ type PSPDirectoryTable struct {
 	PSPDirectoryTableHeader
 
 	Entries []PSPDirectoryTableEntry
+}
+
+func IsPSPDirLevel2Entry(e PSPDirectoryTableEntry) bool {
+	switch e.Type {
+	case PSPDirectoryTableLevel2Entry:
+	case PSPDirectoryTableLevel2RecovAEntry:
+	case PSPDirectoryTableLevel2RecovBEntry:
+		return true
+	}
+	return false
 }
 
 func (p PSPDirectoryTable) String() string {
