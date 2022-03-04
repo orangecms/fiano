@@ -118,7 +118,7 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 		result.PSPDirectories[0].PSPDirectoryLevel1Range = pspDirectoryLevel1Range
 
 		for _, entry := range pspDirectoryLevel1.Entries {
-			if entry.Type != PSPDirectoryTableLevel2Entry {
+			if !IsPSPDirLevel2Entry(entry) {
 				continue
 			}
 			// TODO: This is hardcoded, and likely the wrong place to do it.
