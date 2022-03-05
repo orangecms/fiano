@@ -20,10 +20,14 @@ import (
 const EmbeddedFirmwareStructureSignature = 0x55aa55aa
 
 // EmbeddedFirmwareStructure represents Embedded Firmware Structure defined in Table 2 in (1)
+// see also https://doc.coreboot.org/soc/amd/psp_integration.html#embedded-firmware-structure
 type EmbeddedFirmwareStructure struct {
-	Signature                uint32
-	Reserved1                [16]byte
-	PSPDirectoryTablePointer uint32
+	Signature                      uint32
+	IMC_FW                         uint32
+	GBE_FW                         uint32
+	XHCI_FW                        uint32
+	PSPLegacyDirectoryTablePointer uint32
+	PSPDirectoryTablePointer       uint32
 
 	BIOSDirectoryTableFamily17hModels00h0FhPointer uint32
 	BIOSDirectoryTableFamily17hModels10h1FhPointer uint32
