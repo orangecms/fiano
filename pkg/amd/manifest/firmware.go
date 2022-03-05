@@ -82,6 +82,28 @@ func AddBiosL2Entry(d *BIOSDir, image []byte) {
 	}
 }
 
+func AddPspL2Entry(p *PSPDir, image []byte) {
+	for _, entry := range p.PSPDirectoryLevel1.Entries {
+		if !IsPSPDirLevel2Entry(entry) {
+			continue
+		}
+		// TODO: This is hardcoded, and likely the wrong place to do it.
+		// It stems from the memory mapping in running systems.
+		if entry.LocationOrValue > 0xff000000 {
+			entry.LocationOrValue -= 0xff000000
+		}
+		if entry.LocationOrValue != 0 && entry.LocationOrValue < uint64(len(image)) {
+			pspDirectoryLevel2, length, err := ParsePSPDirectoryTable(image[entry.LocationOrValue:])
+			if err == nil {
+				p.PSPDirectoryLevel2 = pspDirectoryLevel2
+				p.PSPDirectoryLevel2Range.Offset = entry.LocationOrValue
+				p.PSPDirectoryLevel2Range.Length = length
+			}
+		}
+		break
+	}
+}
+
 // parsePSPFirmware parses input firmware as PSP firmware image and
 // collects Embedded firmware, PSP directory and BIOS directory structures
 func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
@@ -117,24 +139,12 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 		result.PSPDirectories[0].PSPDirectoryLevel1 = pspDirectoryLevel1
 		result.PSPDirectories[0].PSPDirectoryLevel1Range = pspDirectoryLevel1Range
 
-		for _, entry := range pspDirectoryLevel1.Entries {
-			if !IsPSPDirLevel2Entry(entry) {
-				continue
-			}
-			// TODO: This is hardcoded, and likely the wrong place to do it.
-			// It stems from the memory mapping in running systems.
-			if entry.LocationOrValue > 0xff000000 {
-				entry.LocationOrValue -= 0xff000000
-			}
-			if entry.LocationOrValue != 0 && entry.LocationOrValue < uint64(len(image)) {
-				pspDirectoryLevel2, length, err := ParsePSPDirectoryTable(image[entry.LocationOrValue:])
-				if err == nil {
-					result.PSPDirectories[0].PSPDirectoryLevel2 = pspDirectoryLevel2
-					result.PSPDirectories[0].PSPDirectoryLevel2Range.Offset = entry.LocationOrValue
-					result.PSPDirectories[0].PSPDirectoryLevel2Range.Length = length
-				}
-			}
-			break
+		if pspDirectoryLevel1 != nil {
+			result.PSPDirectories = append(result.PSPDirectories, PSPDir{})
+			pd := &result.PSPDirectories[len(result.PSPDirectories)-1]
+			pd.PSPDirectoryLevel1 = pspDirectoryLevel1
+			pd.PSPDirectoryLevel1Range = pspDirectoryLevel1Range
+			AddPspL2Entry(pd, image)
 		}
 	}
 
