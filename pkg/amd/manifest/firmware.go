@@ -117,34 +117,60 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 	result.EmbeddedFirmware = *efs
 	result.EmbeddedFirmwareRange = r
 
-	// TODO: Add second PSP directory for other chip families/models
-	// See https://doc.coreboot.org/soc/amd/psp_integration.html#embedded-firmware-structure
-	var pspDirectoryLevel1 *PSPDirectoryTable
-	var pspDirectoryLevel1Range bytes2.Range
+	result.PSPDirectories = []PSPDir{}
+
+	var offset uint64 = 0
+
+	// modern PSP directory
 	if efs.PSPDirectoryTablePointer != 0 && efs.PSPDirectoryTablePointer < uint32(len(image)) {
+		var pspDirectoryLevel1 *PSPDirectoryTable
+		var pspDirectoryLevel1Range bytes2.Range
 		var length uint64
+
 		pspDirectoryLevel1, length, err = ParsePSPDirectoryTable(image[efs.PSPDirectoryTablePointer:])
 		if err == nil {
-			pspDirectoryLevel1Range.Offset = uint64(efs.PSPDirectoryTablePointer)
+			offset = uint64(efs.PSPDirectoryTablePointer)
+			pspDirectoryLevel1Range.Offset = offset
 			pspDirectoryLevel1Range.Length = length
 		}
-	}
-	if pspDirectoryLevel1 == nil {
-		pspDirectoryLevel1, pspDirectoryLevel1Range, _ = FindPSPDirectoryTable(image)
-	}
-	if pspDirectoryLevel1 != nil {
-		result.PSPDirectories = []PSPDir{}
-		result.PSPDirectories = append(result.PSPDirectories, PSPDir{})
-
-		result.PSPDirectories[0].PSPDirectoryLevel1 = pspDirectoryLevel1
-		result.PSPDirectories[0].PSPDirectoryLevel1Range = pspDirectoryLevel1Range
-
+		if pspDirectoryLevel1 == nil {
+			pspDirectoryLevel1, pspDirectoryLevel1Range, err = FindPSPDirectoryTable(image)
+			if err != nil {
+				// save offset for further seeking
+				offset = pspDirectoryLevel1Range.Offset
+			}
+		}
 		if pspDirectoryLevel1 != nil {
-			result.PSPDirectories = append(result.PSPDirectories, PSPDir{})
-			pd := &result.PSPDirectories[len(result.PSPDirectories)-1]
-			pd.PSPDirectoryLevel1 = pspDirectoryLevel1
-			pd.PSPDirectoryLevel1Range = pspDirectoryLevel1Range
-			AddPspL2Entry(pd, image)
+			pspDir := PSPDir{}
+			pspDir.PSPDirectoryLevel1 = pspDirectoryLevel1
+			pspDir.PSPDirectoryLevel1Range = pspDirectoryLevel1Range
+			AddPspL2Entry(&pspDir, image)
+			result.PSPDirectories = append(result.PSPDirectories, pspDir)
+		}
+	}
+	// legacy PSP directory
+	if efs.PSPLegacyDirectoryTablePointer != 0 && efs.PSPLegacyDirectoryTablePointer < uint32(len(image)) {
+		var pspDirectoryLevel1 *PSPDirectoryTable
+		var pspDirectoryLevel1Range bytes2.Range
+		var length uint64
+
+		pspDirectoryLevel1, length, err = ParsePSPDirectoryTable(image[efs.PSPLegacyDirectoryTablePointer:])
+		if err == nil {
+			pspDirectoryLevel1Range.Offset = uint64(efs.PSPLegacyDirectoryTablePointer)
+			pspDirectoryLevel1Range.Length = length
+		}
+		if pspDirectoryLevel1 == nil {
+			pspDirectoryLevel1, pspDirectoryLevel1Range, err = FindPSPDirectoryTable(image[offset+20:])
+			if err != nil {
+				offset = pspDirectoryLevel1Range.Offset
+			}
+		}
+		if pspDirectoryLevel1 != nil {
+			pspDir := PSPDir{}
+			pspDir.PSPDirectoryLevel1 = pspDirectoryLevel1
+			pspDir.PSPDirectoryLevel1Range = pspDirectoryLevel1Range
+			AddPspL2Entry(&pspDir, image)
+			result.PSPDirectories = append(result.PSPDirectories, pspDir)
 		}
 	}
 
