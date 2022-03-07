@@ -38,6 +38,19 @@ type EmbeddedFirmwareStructure struct {
 	Reserved3 [30]byte
 }
 
+/* Embedded Firmware Structure example
+          Signature     IMC           GBE           XHCI
+00020000: aa55 aa55     0000 0000     0000 0000     0000 0000  .U.U............
+          PSP legacy    PSP modern    BIOS1         BIOS2
+00020010: 0000 0000     0070 0e00     0000 24ff     00f0 3aff  .....p....$...:.
+          BIOS3         R2 (????)     BIOS4         R3[0..3]
+00020020: 00f0 5d00     feff ffff     0078 0e00     ffff ffff  ..]......x......
+          R3[4..7]      R3[8..11]     R3[12..15]    R3[16..19]
+00020030: 0000 0000     0000 0000     00f0 90ff     ffff ffff  ................
+          R3[20..23]    R3[24..27]    R3[29,30]+?   ????
+00020040: ffff ffff     ffff ffff     0055 ffff     ffff ffff  .........U......
+*/
+
 // FindEmbeddedFirmwareStructure locates and parses Embedded Firmware Structure
 func FindEmbeddedFirmwareStructure(firmware Firmware) (*EmbeddedFirmwareStructure, bytes2.Range, error) {
 	var addresses = []uint64{
