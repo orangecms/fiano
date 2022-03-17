@@ -121,22 +121,21 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 
 	var offset uint64 = 0
 
-	// modern PSP directory
-	if efs.PSPDirectoryTablePointer != 0 && efs.PSPDirectoryTablePointer < uint32(len(image)) {
+	// legacy PSP directory
+	if efs.PSPLegacyDirectoryTablePointer != 0 && efs.PSPLegacyDirectoryTablePointer < uint32(len(image)) {
 		var pspDirectoryLevel1 *PSPDirectoryTable
 		var pspDirectoryLevel1Range bytes2.Range
 		var length uint64
 
-		pspDirectoryLevel1, length, err = ParsePSPDirectoryTable(image[efs.PSPDirectoryTablePointer:])
+		pspDirectoryLevel1, length, err = ParsePSPDirectoryTable(image[efs.PSPLegacyDirectoryTablePointer:])
 		if err == nil {
 			offset = uint64(efs.PSPDirectoryTablePointer)
-			pspDirectoryLevel1Range.Offset = offset
+			pspDirectoryLevel1Range.Offset = uint64(efs.PSPLegacyDirectoryTablePointer)
 			pspDirectoryLevel1Range.Length = length
 		}
 		if pspDirectoryLevel1 == nil {
 			pspDirectoryLevel1, pspDirectoryLevel1Range, err = FindPSPDirectoryTable(image)
 			if err != nil {
-				// save offset for further seeking
 				offset = pspDirectoryLevel1Range.Offset
 			}
 		}
@@ -148,20 +147,21 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 			result.PSPDirectories = append(result.PSPDirectories, pspDir)
 		}
 	}
-	// legacy PSP directory
-	if efs.PSPLegacyDirectoryTablePointer != 0 && efs.PSPLegacyDirectoryTablePointer < uint32(len(image)) {
+	// modern PSP directory
+	if efs.PSPDirectoryTablePointer != 0 && efs.PSPDirectoryTablePointer < uint32(len(image)) {
 		var pspDirectoryLevel1 *PSPDirectoryTable
 		var pspDirectoryLevel1Range bytes2.Range
 		var length uint64
 
-		pspDirectoryLevel1, length, err = ParsePSPDirectoryTable(image[efs.PSPLegacyDirectoryTablePointer:])
+		pspDirectoryLevel1, length, err = ParsePSPDirectoryTable(image[efs.PSPDirectoryTablePointer:])
 		if err == nil {
-			pspDirectoryLevel1Range.Offset = uint64(efs.PSPLegacyDirectoryTablePointer)
+			pspDirectoryLevel1Range.Offset = offset
 			pspDirectoryLevel1Range.Length = length
 		}
 		if pspDirectoryLevel1 == nil {
 			pspDirectoryLevel1, pspDirectoryLevel1Range, err = FindPSPDirectoryTable(image[offset+20:])
 			if err != nil {
+				// save offset for further seeking
 				offset = pspDirectoryLevel1Range.Offset
 			}
 		}
