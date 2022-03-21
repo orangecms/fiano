@@ -52,7 +52,7 @@ func (v *Dump) Visit(f uefi.Firmware) error {
 }
 
 func init() {
-	RegisterCLI("dump", "dump a firmware file", 2, func(args []string) (uefi.Visitor, error) {
+	RegisterCLI("dump", "dump PATTERN OUTFILE\n dump file matching PATTERN to OUTFILE", 2, func(args []string) (uefi.Visitor, error) {
 		pred, err := FindFilePredicate(args[0])
 		if err != nil {
 			return nil, err
