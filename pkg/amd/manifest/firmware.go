@@ -122,6 +122,9 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 	var offset uint64 = 0
 
 	// legacy PSP directory
+	if efs.PSPLegacyDirectoryTablePointer > 0xff000000 {
+		efs.PSPLegacyDirectoryTablePointer -= 0xff000000
+	}
 	if efs.PSPLegacyDirectoryTablePointer != 0 && efs.PSPLegacyDirectoryTablePointer < uint32(len(image)) {
 		var pspDirectoryLevel1 *PSPDirectoryTable
 		var pspDirectoryLevel1Range bytes2.Range
@@ -148,6 +151,9 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 		}
 	}
 	// modern PSP directory
+	if efs.PSPDirectoryTablePointer > 0xff000000 {
+		efs.PSPDirectoryTablePointer -= 0xff000000
+	}
 	if efs.PSPDirectoryTablePointer != 0 && efs.PSPDirectoryTablePointer < uint32(len(image)) {
 		var pspDirectoryLevel1 *PSPDirectoryTable
 		var pspDirectoryLevel1Range bytes2.Range
