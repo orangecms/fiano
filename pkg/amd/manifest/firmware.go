@@ -70,8 +70,10 @@ func AddBiosL2Entry(d *BIOSDir, image []byte) {
 		if entry.SourceAddress > 0xff000000 {
 			entry.SourceAddress -= 0xff000000
 		}
+		fmt.Printf(" - BIOS L2 dir at %x\n", entry.SourceAddress)
 		if entry.SourceAddress != 0 && entry.SourceAddress < uint64(len(image)) {
 			biosDirectoryLevel2, length, err := ParseBIOSDirectoryTable(image[entry.SourceAddress:])
+			fmt.Printf("  BIOS L2 dir size %x\n", length)
 			if err == nil {
 				d.BIOSDirectoryLevel2 = biosDirectoryLevel2
 				d.BIOSDirectoryLevel2Range.Offset = entry.SourceAddress
@@ -92,8 +94,10 @@ func AddPspL2Entry(p *PSPDir, image []byte) {
 		if entry.LocationOrValue > 0xff000000 {
 			entry.LocationOrValue -= 0xff000000
 		}
+		fmt.Printf(" - PSP L2 dir at %x\n", entry.LocationOrValue)
 		if entry.LocationOrValue != 0 && entry.LocationOrValue < uint64(len(image)) {
 			pspDirectoryLevel2, length, err := ParsePSPDirectoryTable(image[entry.LocationOrValue:])
+			fmt.Printf("  PSP L2 dir size %x\n", length)
 			if err == nil {
 				p.PSPDirectoryLevel2 = pspDirectoryLevel2
 				p.PSPDirectoryLevel2Range.Offset = entry.LocationOrValue
@@ -161,9 +165,11 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 
 		pspDirectoryLevel1, length, err = ParsePSPDirectoryTable(image[efs.PSPDirectoryTablePointer:])
 		if err == nil {
-			pspDirectoryLevel1Range.Offset = offset
+			offset = uint64(efs.PSPDirectoryTablePointer)
+			pspDirectoryLevel1Range.Offset = uint64(offset)
 			pspDirectoryLevel1Range.Length = length
 		}
+		fmt.Printf("Parse PSPDir at %x\n", pspDirectoryLevel1Range.Offset)
 		if pspDirectoryLevel1 == nil {
 			pspDirectoryLevel1, pspDirectoryLevel1Range, err = FindPSPDirectoryTable(image[offset+20:])
 			if err != nil {
@@ -205,6 +211,7 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 			continue
 		}
 		var length uint64
+		fmt.Printf("Parse BIOSDir at %v", offset)
 		biosDirectoryLevel1, length, err = ParseBIOSDirectoryTable(image[offset:])
 
 		if err != nil {
