@@ -68,9 +68,9 @@ type PSPDirectoryTable struct {
 
 func IsPSPDirLevel2Entry(e PSPDirectoryTableEntry) bool {
 	switch e.Type {
-	case PSPDirectoryTableLevel2Entry:
-	case PSPDirectoryTableLevel2RecovAEntry:
-	case PSPDirectoryTableLevel2RecovBEntry:
+	case PSPDirectoryTableLevel2Entry,
+		PSPDirectoryTableLevel2RecovAEntry,
+		PSPDirectoryTableLevel2RecovBEntry:
 		return true
 	}
 	return false
