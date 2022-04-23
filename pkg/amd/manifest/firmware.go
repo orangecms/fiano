@@ -25,10 +25,8 @@ type BIOSDir struct {
 }
 
 type PSPDir struct {
-	PSPDirectoryLevel1      *PSPDirectoryTable
-	PSPDirectoryLevel1Range bytes2.Range
-	PSPDirectoryLevel2      *PSPDirectoryTable
-	PSPDirectoryLevel2Range bytes2.Range
+	PSPDirectoryLevel1 *PSPDirectoryTable
+	PSPDirectoryLevel2 *[]PSPDirectoryTable
 }
 
 // PSPFirmware contains essential parts of the AMD's PSP firmware internals
@@ -87,6 +85,8 @@ func AddBiosL2Entry(d *BIOSDir, image []byte) {
 
 func AddPspL2Entry(p *PSPDir, image []byte) {
 	fmt.Printf(" - PSP L2 dir scan\n")
+	var dirs []PSPDirectoryTable
+
 	for _, entry := range p.PSPDirectoryLevel1.Entries {
 		if !IsPSPDirLevel2Entry(entry) {
 			continue
@@ -109,13 +109,13 @@ func AddPspL2Entry(p *PSPDir, image []byte) {
 				fmt.Printf("   PSP L2 recov dir size %x\n", length)
 			}
 			if err == nil {
-				p.PSPDirectoryLevel2 = pspDirectoryLevel2
-				p.PSPDirectoryLevel2Range.Offset = entry.LocationOrValue
-				p.PSPDirectoryLevel2Range.Length = length
+				pspDirectoryLevel2.Range.Offset = entry.LocationOrValue
+				pspDirectoryLevel2.Range.Length = length
+				dirs = append(dirs, *pspDirectoryLevel2)
 			}
 		}
-		break
 	}
+	p.PSPDirectoryLevel2 = &dirs
 }
 
 // parsePSPFirmware parses input firmware as PSP firmware image and
@@ -158,8 +158,8 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 		}
 		if pspDirectoryLevel1 != nil {
 			pspDir := PSPDir{}
+			pspDirectoryLevel1.Range = pspDirectoryLevel1Range
 			pspDir.PSPDirectoryLevel1 = pspDirectoryLevel1
-			pspDir.PSPDirectoryLevel1Range = pspDirectoryLevel1Range
 			AddPspL2Entry(&pspDir, image)
 			result.PSPDirectories = append(result.PSPDirectories, pspDir)
 		}
@@ -188,8 +188,8 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 		}
 		if pspDirectoryLevel1 != nil {
 			pspDir := PSPDir{}
+			pspDirectoryLevel1.Range = pspDirectoryLevel1Range
 			pspDir.PSPDirectoryLevel1 = pspDirectoryLevel1
-			pspDir.PSPDirectoryLevel1Range = pspDirectoryLevel1Range
 			AddPspL2Entry(&pspDir, image)
 			result.PSPDirectories = append(result.PSPDirectories, pspDir)
 		}

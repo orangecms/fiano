@@ -36,13 +36,6 @@ const (
 	PSPDirectoryTableLevel2RecovBEntry PSPDirectoryTableEntryType = 0x4A
 )
 
-/*
-00060000: 0200 0000 0300 0000 ff00 0000 0000 0800  ................
-
-
-00070000: 0100 0000 0300 0000 ff00 0000 0000 8800  ................
-*/
-
 // PSPDirectoryTableEntry represents a single entry in PSP Directory Table
 // Table 5 in (1)
 type PSPDirectoryTableEntry struct {
@@ -65,9 +58,22 @@ type PSPDirectoryTableHeader struct {
 	AdditionalInfo uint32
 }
 
+/* samples
+Recovery A
+
+00060000: 0200 0000   0300 0000   ff00 0000   0000 0800  ................
+
+Recovery B
+           ??  | -- ?? --| | -- ?? --|  ??  | Location |
+00070000: 0100 0000   0300 0000   ff00 0000   0000 8800  ................
+*/
+
 type PSPDirectoryTableLevel2RecovEntry struct {
-	X        uint64
-	Y        uint32
+	// TODO: What are those? Sizes are just guesses based on samples.
+	Unknown1 uint16
+	Unknown2 uint32
+	Unknown3 uint32
+	Unknown4 uint16
 	Location uint32
 }
 
@@ -75,7 +81,7 @@ type PSPDirectoryTableLevel2RecovEntry struct {
 // Table 5 in (1)
 type PSPDirectoryTable struct {
 	PSPDirectoryTableHeader
-
+	Range   bytes2.Range
 	Entries []PSPDirectoryTableEntry
 }
 
@@ -155,10 +161,16 @@ func ParseRecovEntry(data []byte) (*PSPDirectoryTableLevel2RecovEntry, error) {
 
 	r := bytes.NewBuffer(data)
 
-	if err := readAndCountSize(r, binary.LittleEndian, &entry.X, &length); err != nil {
+	if err := readAndCountSize(r, binary.LittleEndian, &entry.Unknown1, &length); err != nil {
 		return nil, err
 	}
-	if err := readAndCountSize(r, binary.LittleEndian, &entry.Y, &length); err != nil {
+	if err := readAndCountSize(r, binary.LittleEndian, &entry.Unknown2, &length); err != nil {
+		return nil, err
+	}
+	if err := readAndCountSize(r, binary.LittleEndian, &entry.Unknown3, &length); err != nil {
+		return nil, err
+	}
+	if err := readAndCountSize(r, binary.LittleEndian, &entry.Unknown4, &length); err != nil {
 		return nil, err
 	}
 	if err := readAndCountSize(r, binary.LittleEndian, &entry.Location, &length); err != nil {
