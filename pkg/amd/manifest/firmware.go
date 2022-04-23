@@ -100,6 +100,14 @@ func AddPspL2Entry(p *PSPDir, image []byte) {
 		if entry.LocationOrValue != 0 && entry.LocationOrValue < uint64(len(image)) {
 			pspDirectoryLevel2, length, err := ParsePSPDirectoryTable(image[entry.LocationOrValue:])
 			fmt.Printf("   PSP L2 dir size %x\n", length)
+			if length == 0 && (entry.Type == PSPDirectoryTableLevel2RecovAEntry ||
+				entry.Type == PSPDirectoryTableLevel2RecovBEntry) {
+				fmt.Printf("%x recov pointer location\n", entry.LocationOrValue)
+				recovDir, _ := ParseRecovEntry(image[entry.LocationOrValue:])
+				fmt.Printf("%x recovDir\n", recovDir.Location)
+				pspDirectoryLevel2, length, err = ParsePSPDirectoryTable(image[recovDir.Location:])
+				fmt.Printf("   PSP L2 recov dir size %x\n", length)
+			}
 			if err == nil {
 				p.PSPDirectoryLevel2 = pspDirectoryLevel2
 				p.PSPDirectoryLevel2Range.Offset = entry.LocationOrValue

@@ -36,6 +36,13 @@ const (
 	PSPDirectoryTableLevel2RecovBEntry PSPDirectoryTableEntryType = 0x4A
 )
 
+/*
+00060000: 0200 0000 0300 0000 ff00 0000 0000 0800  ................
+
+
+00070000: 0100 0000 0300 0000 ff00 0000 0000 8800  ................
+*/
+
 // PSPDirectoryTableEntry represents a single entry in PSP Directory Table
 // Table 5 in (1)
 type PSPDirectoryTableEntry struct {
@@ -56,6 +63,12 @@ type PSPDirectoryTableHeader struct {
 	Checksum       uint32
 	TotalEntries   uint32
 	AdditionalInfo uint32
+}
+
+type PSPDirectoryTableLevel2RecovEntry struct {
+	X        uint64
+	Y        uint32
+	Location uint32
 }
 
 // PSPDirectoryTable represents PSP Directory Table Header with all entries
@@ -134,6 +147,24 @@ func FindPSPDirectoryTable(image []byte) (*PSPDirectoryTable, bytes2.Range, erro
 		return table, bytes2.Range{Offset: offset + uint64(idx), Length: length}, err
 	}
 	return nil, bytes2.Range{}, fmt.Errorf("PSPDirectoryTable is not found")
+}
+
+func ParseRecovEntry(data []byte) (*PSPDirectoryTableLevel2RecovEntry, error) {
+	var entry PSPDirectoryTableLevel2RecovEntry
+	var length uint64
+
+	r := bytes.NewBuffer(data)
+
+	if err := readAndCountSize(r, binary.LittleEndian, &entry.X, &length); err != nil {
+		return nil, err
+	}
+	if err := readAndCountSize(r, binary.LittleEndian, &entry.Y, &length); err != nil {
+		return nil, err
+	}
+	if err := readAndCountSize(r, binary.LittleEndian, &entry.Location, &length); err != nil {
+		return nil, err
+	}
+	return &entry, nil
 }
 
 // ParsePSPDirectoryTable converts input bytes into PSPDirectoryTable
