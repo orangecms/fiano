@@ -127,19 +127,36 @@ func (b BIOSDirectoryTable) String() string {
 // and treats remaining bytes as BIOSDirectoryTable
 func FindBIOSDirectoryTable(image []byte) (*BIOSDirectoryTable, bytes2.Range, error) {
 	// there is no predefined address, search through the whole memory
-	var cookieBytes [4]byte
-	binary.LittleEndian.PutUint32(cookieBytes[:], BIOSDirectoryTableCookie)
+	var cookieBytes1 [4]byte
+	var cookieBytes2 [4]byte
+	binary.LittleEndian.PutUint32(cookieBytes1[:], BIOSDirectoryTableCookie)
+	binary.LittleEndian.PutUint32(cookieBytes2[:], BIOSDirectoryTableLevel2Cookie)
 
 	var offset uint64
 	for {
-		idx := bytes.Index(image, cookieBytes[:])
+		idx := bytes.Index(image, cookieBytes1[:])
 		if idx == -1 {
 			break
 		}
 
 		table, bytesRead, err := ParseBIOSDirectoryTable(image[idx:])
 		if err != nil {
-			shift := uint64(idx + len(cookieBytes))
+			shift := uint64(idx + len(cookieBytes1))
+			image = image[shift:]
+			offset += shift
+			continue
+		}
+		return table, bytes2.Range{Offset: offset + uint64(idx), Length: bytesRead}, err
+	}
+	for {
+		idx := bytes.Index(image, cookieBytes2[:])
+		if idx == -1 {
+			break
+		}
+
+		table, bytesRead, err := ParseBIOSDirectoryTable(image[idx:])
+		if err != nil {
+			shift := uint64(idx + len(cookieBytes2))
 			image = image[shift:]
 			offset += shift
 			continue

@@ -5,6 +5,7 @@
 package manifest
 
 import (
+	"encoding/json"
 	"fmt"
 
 	bytes2 "github.com/linuxboot/fiano/pkg/bytes"
@@ -241,14 +242,18 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 
 	// TODO: Manually scan in addition and compare offsets to existing findings
 	// NOTE: Some images do not have level 2 directory references in directory 1.
-	/*
-		biosDirectoryLevel1, biosDirectoryLevel1Range, err = FindBIOSDirectoryTable(image[curOffset:])
-		if err != nil {
-			fmt.Printf("BIOS DIR SCAN: %v\n", err)
-		} else {
-			fmt.Printf("BIOS DIR SCAN: %v\n", biosDirectoryLevel1Range)
-		}
-	*/
+	biosDir, biosDirRange, err := FindBIOSDirectoryTable(image)
+	if err != nil {
+		fmt.Printf("BIOS DIR SCAN: %v\n", err)
+	} else {
+		fmt.Printf("BIOS DIR SCAN: %v / %v files\n", biosDirRange, biosDir.TotalEntries)
+		d, _ := json.MarshalIndent(biosDir.Entries, "", "  ")
+		fmt.Printf("BIOS DIR SCAN: %v\n", string(d))
+		result.BIOSDirectories = append(result.BIOSDirectories, BIOSDir{})
+		bd := &result.BIOSDirectories[len(result.BIOSDirectories)-1]
+		bd.BIOSDirectoryLevel1 = biosDir
+		bd.BIOSDirectoryLevel1Range = biosDirRange
+	}
 
 	return &result, nil
 }
