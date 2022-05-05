@@ -7,6 +7,7 @@ package manifest
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	bytes2 "github.com/linuxboot/fiano/pkg/bytes"
 )
@@ -60,7 +61,7 @@ func (a *AMDFirmware) PSPFirmware() *PSPFirmware {
 }
 
 func AddBiosL2Entry(d *BIOSDir, image []byte) {
-	fmt.Printf(" - BIOS L2 dir scan\n")
+	fmt.Fprintf(os.Stderr, " - BIOS L2 dir scan\n")
 	for _, entry := range d.BIOSDirectoryLevel1.Entries {
 		if entry.Type != BIOSDirectoryTableLevel2Entry {
 			continue
@@ -70,10 +71,10 @@ func AddBiosL2Entry(d *BIOSDir, image []byte) {
 		if entry.SourceAddress > 0xff000000 {
 			entry.SourceAddress -= 0xff000000
 		}
-		fmt.Printf("   BIOS L2 dir at %x\n", entry.SourceAddress)
+		fmt.Fprintf(os.Stderr, "   BIOS L2 dir at %x\n", entry.SourceAddress)
 		if entry.SourceAddress != 0 && entry.SourceAddress < uint64(len(image)) {
 			biosDirectoryLevel2, length, err := ParseBIOSDirectoryTable(image[entry.SourceAddress:])
-			fmt.Printf("   BIOS L2 dir size %x\n", length)
+			fmt.Fprintf(os.Stderr, "   BIOS L2 dir size %x\n", length)
 			if err == nil {
 				d.BIOSDirectoryLevel2 = biosDirectoryLevel2
 				d.BIOSDirectoryLevel2Range.Offset = entry.SourceAddress
@@ -85,7 +86,7 @@ func AddBiosL2Entry(d *BIOSDir, image []byte) {
 }
 
 func AddPspL2Entry(p *PSPDir, image []byte) {
-	fmt.Printf(" - PSP L2 dir scan\n")
+	fmt.Fprintf(os.Stderr, " - PSP L2 dir scan\n")
 	var dirs []PSPDirectoryTable
 
 	for _, entry := range p.PSPDirectoryLevel1.Entries {
@@ -97,17 +98,17 @@ func AddPspL2Entry(p *PSPDir, image []byte) {
 		if entry.LocationOrValue > 0xff000000 {
 			entry.LocationOrValue -= 0xff000000
 		}
-		fmt.Printf("   PSP L2 dir at %x\n", entry.LocationOrValue)
+		fmt.Fprintf(os.Stderr, "   PSP L2 dir at %x\n", entry.LocationOrValue)
 		if entry.LocationOrValue != 0 && entry.LocationOrValue < uint64(len(image)) {
 			pspDirectoryLevel2, length, err := ParsePSPDirectoryTable(image[entry.LocationOrValue:])
-			fmt.Printf("   PSP L2 dir size %x\n", length)
+			fmt.Fprintf(os.Stderr, "   PSP L2 dir size %x\n", length)
 			if length == 0 && (entry.Type == PSPDirectoryTableLevel2RecovAEntry ||
 				entry.Type == PSPDirectoryTableLevel2RecovBEntry) {
-				fmt.Printf("%x recov pointer location\n", entry.LocationOrValue)
+				fmt.Fprintf(os.Stderr, "%x recov pointer location\n", entry.LocationOrValue)
 				recovDir, _ := ParseRecovEntry(image[entry.LocationOrValue:])
-				fmt.Printf("%x recovDir\n", recovDir.Location)
+				fmt.Fprintf(os.Stderr, "%x recovDir\n", recovDir.Location)
 				pspDirectoryLevel2, length, err = ParsePSPDirectoryTable(image[recovDir.Location:])
-				fmt.Printf("   PSP L2 recov dir size %x\n", length)
+				fmt.Fprintf(os.Stderr, "   PSP L2 recov dir size %x\n", length)
 			}
 			if err == nil {
 				pspDirectoryLevel2.Range.Offset = entry.LocationOrValue
@@ -144,7 +145,7 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 		var pspDirectoryLevel1 *PSPDirectoryTable
 		var pspDirectoryLevel1Range bytes2.Range
 		var length uint64
-		fmt.Printf("Parse legacy PSPDir at %x\n", efs.PSPDirectoryTablePointer)
+		fmt.Fprintf(os.Stderr, "Parse legacy PSPDir at %x\n", efs.PSPDirectoryTablePointer)
 		pspDirectoryLevel1, length, err = ParsePSPDirectoryTable(image[efs.PSPLegacyDirectoryTablePointer:])
 		if err == nil {
 			offset = uint64(efs.PSPDirectoryTablePointer)
@@ -173,7 +174,7 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 		var pspDirectoryLevel1 *PSPDirectoryTable
 		var pspDirectoryLevel1Range bytes2.Range
 		var length uint64
-		fmt.Printf("Parse modern PSPDir at %x\n", efs.PSPDirectoryTablePointer)
+		fmt.Fprintf(os.Stderr, "Parse modern PSPDir at %x\n", efs.PSPDirectoryTablePointer)
 		pspDirectoryLevel1, length, err = ParsePSPDirectoryTable(image[efs.PSPDirectoryTablePointer:])
 		if err == nil {
 			offset = uint64(efs.PSPDirectoryTablePointer)
@@ -221,7 +222,7 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 			continue
 		}
 		var length uint64
-		fmt.Printf("Parse BIOSDir at %x\n", offset)
+		fmt.Fprintf(os.Stderr, "Parse BIOSDir at %x\n", offset)
 		biosDirectoryLevel1, length, err = ParseBIOSDirectoryTable(image[offset:])
 
 		if err != nil {
@@ -231,7 +232,7 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 		biosDirectoryLevel1Range.Length = length
 
 		if biosDirectoryLevel1 != nil {
-			// fmt.Printf("BIOS DIR FOUND %v (%v)\n", biosDirectoryLevel1.BIOSCookie, length)
+			// fmt.Fprintf(os.Stderr, "BIOS DIR FOUND %v (%v)\n", biosDirectoryLevel1.BIOSCookie, length)
 			result.BIOSDirectories = append(result.BIOSDirectories, BIOSDir{})
 			bd := &result.BIOSDirectories[len(result.BIOSDirectories)-1]
 			bd.BIOSDirectoryLevel1 = biosDirectoryLevel1
@@ -244,11 +245,11 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 	// NOTE: Some images do not have level 2 directory references in directory 1.
 	biosDir, biosDirRange, err := FindBIOSDirectoryTable(image)
 	if err != nil {
-		fmt.Printf("BIOS DIR SCAN: %v\n", err)
+		fmt.Fprintf(os.Stderr, "BIOS DIR SCAN: %v\n", err)
 	} else {
-		fmt.Printf("BIOS DIR SCAN: %v / %v files\n", biosDirRange, biosDir.TotalEntries)
+		fmt.Fprintf(os.Stderr, "BIOS DIR SCAN: %v / %v files\n", biosDirRange, biosDir.TotalEntries)
 		d, _ := json.MarshalIndent(biosDir.Entries, "", "  ")
-		fmt.Printf("BIOS DIR SCAN: %v\n", string(d))
+		fmt.Fprintf(os.Stderr, "BIOS DIR SCAN: %v\n", string(d))
 		result.BIOSDirectories = append(result.BIOSDirectories, BIOSDir{})
 		bd := &result.BIOSDirectories[len(result.BIOSDirectories)-1]
 		bd.BIOSDirectoryLevel1 = biosDir
