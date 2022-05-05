@@ -20,10 +20,8 @@ type Firmware interface {
 }
 
 type BIOSDir struct {
-	BIOSDirectoryLevel1      *BIOSDirectoryTable
-	BIOSDirectoryLevel1Range bytes2.Range
-	BIOSDirectoryLevel2      *BIOSDirectoryTable
-	BIOSDirectoryLevel2Range bytes2.Range
+	BIOSDirectoryLevel1 *BIOSDirectoryTable
+	BIOSDirectoryLevel2 *BIOSDirectoryTable
 }
 
 type PSPDir struct {
@@ -76,9 +74,9 @@ func AddBiosL2Entry(d *BIOSDir, image []byte) {
 			biosDirectoryLevel2, length, err := ParseBIOSDirectoryTable(image[entry.SourceAddress:])
 			fmt.Fprintf(os.Stderr, "   BIOS L2 dir size %x\n", length)
 			if err == nil {
+				biosDirectoryLevel2.Range.Offset = entry.SourceAddress
+				biosDirectoryLevel2.Range.Length = length
 				d.BIOSDirectoryLevel2 = biosDirectoryLevel2
-				d.BIOSDirectoryLevel2Range.Offset = entry.SourceAddress
-				d.BIOSDirectoryLevel2Range.Length = length
 			}
 		}
 		break
@@ -232,11 +230,11 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 		biosDirectoryLevel1Range.Length = length
 
 		if biosDirectoryLevel1 != nil {
-			// fmt.Fprintf(os.Stderr, "BIOS DIR FOUND %v (%v)\n", biosDirectoryLevel1.BIOSCookie, length)
+			fmt.Fprintf(os.Stderr, "BIOS DIR FOUND %v (%v)\n", biosDirectoryLevel1.BIOSCookie, length)
 			result.BIOSDirectories = append(result.BIOSDirectories, BIOSDir{})
 			bd := &result.BIOSDirectories[len(result.BIOSDirectories)-1]
+			biosDirectoryLevel1.Range = biosDirectoryLevel1Range
 			bd.BIOSDirectoryLevel1 = biosDirectoryLevel1
-			bd.BIOSDirectoryLevel1Range = biosDirectoryLevel1Range
 			AddBiosL2Entry(bd, image)
 		}
 	}
@@ -252,8 +250,8 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 		fmt.Fprintf(os.Stderr, "BIOS DIR SCAN: %v\n", string(d))
 		result.BIOSDirectories = append(result.BIOSDirectories, BIOSDir{})
 		bd := &result.BIOSDirectories[len(result.BIOSDirectories)-1]
+		biosDir.Range = biosDirRange
 		bd.BIOSDirectoryLevel1 = biosDir
-		bd.BIOSDirectoryLevel1Range = biosDirRange
 	}
 
 	return &result, nil

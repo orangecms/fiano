@@ -82,6 +82,7 @@ type BIOSDirectoryTable struct {
 	BIOSDirectoryTableHeader
 
 	Entries []BIOSDirectoryTableEntry
+	Range   bytes2.Range
 }
 
 func (b BIOSDirectoryTable) String() string {
