@@ -5,7 +5,6 @@
 package manifest
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 
@@ -239,21 +238,27 @@ func parsePSPFirmware(firmware Firmware) (*PSPFirmware, error) {
 		}
 	}
 
-	// TODO: Manually scan in addition and compare offsets to existing findings
 	// NOTE: Some images do not have level 2 directory references in directory 1.
-	biosDir, biosDirRange, err := FindBIOSDirectoryTable(image)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "BIOS DIR SCAN: %v\n", err)
-	} else {
-		fmt.Fprintf(os.Stderr, "BIOS DIR SCAN: %v / %v files\n", biosDirRange, biosDir.TotalEntries)
-		d, _ := json.MarshalIndent(biosDir.Entries, "", "  ")
-		fmt.Fprintf(os.Stderr, "BIOS DIR SCAN: %v\n", string(d))
-		result.BIOSDirectories = append(result.BIOSDirectories, BIOSDir{})
-		bd := &result.BIOSDirectories[len(result.BIOSDirectories)-1]
-		biosDir.Range = biosDirRange
-		bd.BIOSDirectoryLevel1 = biosDir
+	offset = 0
+	for {
+		fmt.Fprintf(os.Stderr, "offset: %v\n", offset)
+		biosDir, biosDirRange, err := FindBIOSDirectoryTable(image[offset:])
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "BIOS DIR SCAN: %v\n", err)
+			break
+		} else {
+			fmt.Fprintf(os.Stderr, "BIOS DIR SCAN: %v / %v files\n", biosDirRange, biosDir.TotalEntries)
+			biosDir.Range = biosDirRange
+			result.BIOSDirectories = append(result.BIOSDirectories, BIOSDir{})
+			bd := &result.BIOSDirectories[len(result.BIOSDirectories)-1]
+			bd.BIOSDirectoryLevel1 = biosDir
+			// FIXME: Not sure why, but this happened... looping infinitely -_-
+			if offset > biosDirRange.Offset+biosDirRange.Length {
+				break
+			}
+			offset = biosDirRange.Offset + biosDirRange.Length
+		}
 	}
-
 	return &result, nil
 }
 
