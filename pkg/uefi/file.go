@@ -56,7 +56,8 @@ var SupportedFiles = map[FVFileType]bool{
 	FVFileTypeDXECore:  true,
 	// TODO: Commenting out this line prevents PEI modules from being
 	// decompressed. This solves the problem of PEI being too big when recompressed.
-	//FVFileTypePEIM:               true,
+	// FIXME: Make an API, provide a flag?
+	FVFileTypePEIM:               true,
 	FVFileTypeDriver:             true,
 	FVFileTypeCombinedPEIMDriver: true,
 	FVFileTypeApplication:        true,
