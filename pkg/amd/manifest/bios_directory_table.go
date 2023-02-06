@@ -49,13 +49,13 @@ const (
 // BIOSDirectoryTableEntry represents a single entry in BIOS Directory Table
 // Table 12 from (1)
 type BIOSDirectoryTableEntry struct {
-	Type       BIOSDirectoryTableEntryType
+	Type       BIOSDirectoryTableEntryType // uint8
 	RegionType uint8
 
 	ResetImage bool
 	CopyImage  bool
 	ReadOnly   bool
-	Compressed bool
+	Compressed bool // TODO check images for this flag :)
 	Instance   uint8
 	Subprogram uint8
 	RomID      uint8
