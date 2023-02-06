@@ -19,36 +19,71 @@ import (
 // EmbeddedFirmwareStructureSignature is a special identifier of Firmware Embedded Structure
 const EmbeddedFirmwareStructureSignature = 0x55aa55aa
 
+// TODO: Expand for server
+// see coreboot `util/amdfwtool/amdfwtool.h`
+type SecondGenEFS struct {
+	_    uint8
+	_    uint8
+	_    uint8
+	_    bool
+	_    bool
+	_    bool
+	_    bool
+	_    bool
+	_    bool
+	_    bool
+	Gen1 bool // per coreboot: client products only use bit 0
+}
+
 // EmbeddedFirmwareStructure represents Embedded Firmware Structure defined in Table 2 in (1)
 // see also https://doc.coreboot.org/soc/amd/psp_integration.html#embedded-firmware-structure
+// and coreboot `util/amdfwtool/amdfwtool.h`
 type EmbeddedFirmwareStructure struct {
 	Signature                      uint32
 	IMC_FW                         uint32
 	GBE_FW                         uint32
 	XHCI_FW                        uint32
 	PSPLegacyDirectoryTablePointer uint32
-	PSPDirectoryTablePointer       uint32
+	PSPDirectoryTablePointer       uint32 // can be "new" or "combo"
 
 	BIOSDirectoryTableFamily17hModels00h0FhPointer uint32
 	BIOSDirectoryTableFamily17hModels10h1FhPointer uint32
 	BIOSDirectoryTableFamily17hModels30h3FhPointer uint32
-	Reserved2                                      uint32
+	EFSGen                                         SecondGenEFS
 	BIOSDirectoryTableFamily17hModels60h3FhPointer uint32
 
-	Reserved3 [30]byte
+	Reserved2Ch                       uint32
+	PromontoryFWPointer               uint32
+	LPPromontoryFWPointer             uint32
+	Reserved38h                       uint32
+	Reserved3Ch                       uint32
+	SPIReadmodeFamily15Models60h6Fh   uint8
+	FastSpeedNewFamily15Models60h6Fh  uint8
+	Reserved42h                       uint8
+	SPIReadmodeFamily17Models00h2Fh   uint8
+	SPIFastspeedFamily17Models00h2Fh  uint8
+	QPRDummyCycleFamily17Models00h2Fh uint8
+	Reserved46h                       uint8
+	SPIReadmodeFamily17Models30h3Fh   uint8
+	SPIFastspeedFamily17Models30h3Fh  uint8
+	MicronDetectFamily17Models30h3Fh  uint8
+	Reserved4Ah                       uint8
+	Reserved4Bh                       uint8
+	Reserved4Ch                       uint32
 }
 
 /* Embedded Firmware Structure example
           Signature     IMC           GBE           XHCI
 00020000: aa55 aa55     0000 0000     0000 0000     0000 0000  .U.U............
-          PSP legacy    PSP modern    BIOS1         BIOS2
+          PSP legacy    PSP modern    BIOS0         BIOS1
 00020010: 0000 0000     0070 0e00     0000 24ff     00f0 3aff  .....p....$...:.
-          BIOS3         R2 (????)     BIOS4         R3[0..3]
+          BIOS2         EFS gener.    BIOS3         Reserved 2Ch
 00020020: 00f0 5d00     feff ffff     0078 0e00     ffff ffff  ..]......x......
-          R3[4..7]      R3[8..11]     R3[12..15]    R3[16..19]
+          Promontory FW LP Promon. FW Reserved 38h  Reserved 3Ch
 00020030: 0000 0000     0000 0000     00f0 90ff     ffff ffff  ................
-          R3[20..23]    R3[24..27]    R3[29,30]+?   ????
+          S F  R S      F Q  R S      F M  R R      Reserved 4Ch
 00020040: ffff ffff     ffff ffff     0055 ffff     ffff ffff  .........U......
+                                        ^ Micron detect fam 17 models 30-3F
 */
 
 // FindEmbeddedFirmwareStructure locates and parses Embedded Firmware Structure

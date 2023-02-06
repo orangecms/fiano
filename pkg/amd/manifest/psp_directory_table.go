@@ -39,7 +39,7 @@ const (
 // PSPDirectoryTableEntry represents a single entry in PSP Directory Table
 // Table 5 in (1)
 type PSPDirectoryTableEntry struct {
-	Type            PSPDirectoryTableEntryType
+	Type            PSPDirectoryTableEntryType // uint8
 	Subprogram      uint8
 	ROMId           uint8
 	Size            uint32
