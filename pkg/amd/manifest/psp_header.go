@@ -24,11 +24,31 @@ func (v FirmwareVersion) String() string {
 // PSPHeader represents a header of each firmware binary
 // See: https://doc.coreboot.org/soc/amd/psp_integration.html
 type PSPHeader struct {
-	Reserved1 [16]byte
-	Cookie    uint32
-	Reserved2 [76]byte
-	Version   FirmwareVersion
-	Reserved3 [156]byte
+	Reserved1    [16]byte
+	Cookie       uint32
+	FwSizeSigned uint32
+	_            [24]byte
+	/* 1 if the image is signed, 0 otherwise */
+	SigOpt           uint32
+	SigId            uint32
+	_                [16]byte
+	CompOpt          uint32
+	_                uint32
+	UncompressedSize uint32
+	CompressedSize   uint32
+	/* Starting MDN fw_id is populated instead of fw_type. */
+	FirmwareId uint16
+	Reserved2  [8]byte
+	Version    FirmwareVersion
+	_          uint32
+	SizeTotal  uint32
+	_          [12]byte
+	/* Starting MDN fw_id is populated instead of fw_type. fw_type
+	will still be around for backwards compatibility. */
+	FWType    byte
+	FWSubType byte
+	FWSubProg byte
+	Reserved3 [129]byte
 }
 
 // Reserved1Offset returns the offset in bytes of field Reserved1

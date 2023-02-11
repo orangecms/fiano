@@ -56,7 +56,8 @@ type EmbeddedFirmwareStructure struct {
 	LegacyPromontoryPointer           Uint24
 	Reserved30h                       uint8
 	PromontoryFWPointer               Uint24
-	LPPromontoryFWPointer             uint32
+	Reserved34h                       uint8
+	LPPromontoryFWPointer             Uint24
 	Reserved38h                       uint32
 	Reserved3Ch                       uint32
 	SPIReadmodeFamily15Models60h6Fh   uint8
