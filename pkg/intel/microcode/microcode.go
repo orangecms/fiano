@@ -98,9 +98,14 @@ func ParseIntelMicrocode(r io.Reader) (*Microcode, error) {
 		return nil, fmt.Errorf("Total size not 32bit aligned")
 	}
 	// Read data
-	m.Data = make([]byte, getDataSize(m.Header))
+	dataSize := getDataSize(m.Header)
+	m.Data = make([]byte, dataSize)
+	b := &bytes.Buffer{}
+	r = io.TeeReader(r, b)
 	if err := binary.Read(r, binary.LittleEndian, &m.Data); err != nil {
-		return nil, fmt.Errorf("Failed to read data: %v", err)
+		bf := &bytes.Buffer{}
+		bufferSize, _ := io.Copy(bf, b)
+		return nil, fmt.Errorf("Failed to read data (reading %v bytes from buffer of size %v): %v", dataSize, bufferSize, err)
 	}
 
 	// Calculcate checksum
