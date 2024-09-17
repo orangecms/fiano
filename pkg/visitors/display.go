@@ -56,14 +56,19 @@ func (v *Display) Visit(f uefi.Firmware) error {
 
 		b := bytes.NewBuffer(f.Buf())
 		os.WriteFile(v.Name, f.Buf(), 0644)
-		numblocks := b.Len()/uefi.RegionBlockSize
-		// The display is 256 blocks x however many rows we need.
-		// So that's len(buf) / (256x1024)
-		squareSize := 2
-		wid := 256*squareSize
-		ht := squareSize*(numblocks/256)
+
+		numblocks := b.Len() / uefi.RegionBlockSize
+		// The display is blocksPerRow x however many rows we need.
+		blocksPerRow := 64
+		blocksPerCol := numblocks / blocksPerRow
+		// Add some padding from the window edges
+		padding := 20
+		squareSize := 5
+		width := 2*padding + blocksPerRow*squareSize
+		height := 2*padding + blocksPerCol*squareSize
+
 		// Initialize the draw context with a dynamically-sized window
-		d, err := draw.Init(nil, "", v.Name, fmt.Sprintf("%dx%d", wid+100, ht+20))
+		d, err := draw.Init(nil, "", v.Name, fmt.Sprintf("%dx%d", width, height))
 		if err != nil {
 			return fmt.Errorf("failed to initialize draw: %w", err)
 		}
@@ -79,12 +84,15 @@ func (v *Display) Visit(f uefi.Firmware) error {
 		red := d.AllocImageMix(draw.Red, draw.Opaque)
 
 		var buf [uefi.RegionBlockSize]byte
-		done:
-		for y := 0; y < ht; y++ {
-			for x := 0; x < wid; x++ {
+	done:
+		for y := 0; y < blocksPerCol; y++ {
+			for x := 0; x < blocksPerRow; x++ {
 				// Calculate the top-left corner of the square
-				pt := draw.Pt(20+x*squareSize, 20+y*squareSize)
+				px := padding + x*squareSize
+				py := padding + y*squareSize
+				pt := draw.Pt(px, py)
 				rect := draw.Rect(pt.X, pt.Y, pt.X+squareSize, pt.Y+squareSize)
+
 				n, err := b.Read(buf[:])
 				if err != nil && err != io.EOF {
 					return fmt.Errorf("reading buffer with non-eof error:%w", err)
